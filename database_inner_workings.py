@@ -72,8 +72,8 @@ def create_database(guild_id, temp_cursor, temp_connection):
         """
         CREATE TABLE HOURS(
         WORKER_ID VARCHAR(18) NOT NULL,
-        START_TIME TIMESTAMP,
-        END_TIME TIMESTAMP DEFAULT NULL,
+        START_TIME TIMESTAMPTZ,
+        END_TIME TIMESTAMPTZ DEFAULT NULL,
 
         PRIMARY KEY (WORKER_ID, START_TIME)
         );

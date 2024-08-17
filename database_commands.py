@@ -1,4 +1,5 @@
 import database_inner_workings
+import database_info
 import psycopg2
 import format
 from psycopg2 import sql
@@ -193,3 +194,11 @@ def delete_session(guild_id, worker_id, session_id, month, year):
     cursor.close()
     connection.close()
     return "Done."
+
+def timezone(guild_id, UTC):
+    cursor, connection = database_inner_workings.database_cursor(guild_id)
+
+    cursor.execute(sql.SQL("ALTER DATABASE {} SET TIMEZONE TO %s").format(sql.Identifier(database_info.name(guild_id))), (UTC,))
+
+    cursor.close()
+    connection.close()

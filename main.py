@@ -71,6 +71,9 @@ async def deletesession(interaction: discord.Interaction,
                         session_id: int,
                         month: int, 
                         year: int = datetime.now().year):
+    if month < 0 or month > 12:
+        await interaction.response.send_message("Invalid month.")
+        return
     guild_id = interaction.guild_id
     response = database_commands.delete_session(guild_id, interaction.user.id, session_id, month, year)
 
@@ -86,6 +89,7 @@ async def calculate_hours(interaction: discord.Interaction,
                           year: int = datetime.now().year):
     if month < 0 or month > 12:
         await interaction.response.send_message("Invalid month.")
+        return
 
     guild_id = interaction.guild_id
     hours_worked = database_commands.calculate_work_hours(guild_id, member.id, month, year)
@@ -105,6 +109,19 @@ async def calculate_hours(interaction: discord.Interaction,
     response += "total: %s ```" % format.time_worked(hours_worked * 60 * 60)
 
     await interaction.response.send_message(response)
+
+@tree.command(
+        name="timezone",
+        description="Sets timezone for the server to specified UTC",
+)
+
+async def timezone(interaction: discord.Interaction, utc: int):
+    if utc < -12 or utc > 14:
+        await interaction.response.send_message("Invalid UTC.")
+        return
+    
+    database_commands.timezone(interaction.guild_id, utc)
+    await interaction.response.send_message("UTC set to %d." % utc)
 
 @client.event
 async def on_ready():
