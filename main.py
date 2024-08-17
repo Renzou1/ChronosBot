@@ -6,8 +6,6 @@ import database_commands
 import format
 from datetime import datetime
 
-#TODO: time zones?
-
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 
