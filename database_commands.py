@@ -165,9 +165,9 @@ def get_diff(cursor, date1, date2):
     
     cursor.execute(
                         """
-                        SELECT (%s::timestamp - %s::timestamp)
+                        SELECT EXTRACT(EPOCH FROM %s::timestamp - %s::timestamp)
                         """, (date1, date2))
-    seconds = cursor.fetchall()[0][0].seconds
+    seconds = cursor.fetchall()[0][0]
 
     hours = seconds // (60 * 60)
     seconds -= hours * 60 * 60
