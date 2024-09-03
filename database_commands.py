@@ -83,7 +83,6 @@ def status(guild_id, worker_id, datetime):
     return response
 
 def calculate_work_hours(guild_id, worker_id, month, year):
-    sync_database_timezone(guild_id)
     cursor.execute(
                     """
                     SELECT EXTRACT (EPOCH FROM SUM(HOURS.END_TIME - HOURS.START_TIME)) FROM HOURS
@@ -101,18 +100,17 @@ def calculate_work_hours(guild_id, worker_id, month, year):
     
     return float(response) / 60 / 60
 
-# syncronizes time zone for you
 def get_sessions(guild_id, worker_id, month, year):
-    sync_database_timezone(guild_id)
+    UTC = get_timezone(guild_id)
     cursor.execute(
                     """
-                    SELECT START_TIME, END_TIME FROM HOURS
+                    SELECT START_TIME AT TIME ZONE %s, END_TIME AT TIME ZONE %s FROM HOURS
                     WHERE EXTRACT(month FROM HOURS.START_TIME) = %s 
                     AND EXTRACT(year FROM HOURS.START_TIME) = %s
                     AND HOURS.WORKER_ID = %s
                     AND HOURS.GUILD_ID = %s
                     ORDER BY HOURS.START_TIME
-                    """, (month, year, worker_id, guild_id)
+                    """, (UTC, UTC, month, year, worker_id, guild_id)
     )
     data = cursor.fetchall()
     start = []
@@ -160,17 +158,23 @@ def delete_session(guild_id, worker_id, session_id, month, year):
     return "Done."
 
 def timezone(guild_id, UTC):
-    cursor.execute(
-                    """
-                    UPDATE TIMEZONES
-                    SET TIMEZONE = %s
-                    WHERE GUILD_ID = %s
-                    """, (UTC, guild_id)
-    )
+    if exists_timezone(guild_id):
+        cursor.execute(
+                        """
+                        UPDATE TIMEZONES
+                        SET TIMEZONE = %s
+                        WHERE GUILD_ID = %s
+                        """, (UTC, guild_id)
+        )
+    else:
+        cursor.execute(
+                """
+                INSERT INTO TIMEZONES (GUILD_ID, TIMEZONE)
+                VALUES (%s, %s)
+                """, (guild_id, UTC)
+                )
 
-# use before getting timezone-specific time
-#may suffer from race condition?
-def sync_database_timezone(guild_id):
+def exists_timezone(guild_id):
     cursor.execute(
                     """
                     SELECT EXISTS(
@@ -180,7 +184,21 @@ def sync_database_timezone(guild_id):
                     """, (guild_id,)
     )
     exists = cursor.fetchall()[0][0]
-    
+    return exists
+
+def get_timezone(guild_id):
+    cursor.execute(
+                    """
+                    SELECT TIMEZONE FROM TIMEZONES
+                    WHERE GUILD_ID = %s
+                    """, (guild_id,)
+                    )
+    return str(cursor.fetchall()[0][0])
+
+# use before getting timezone-specific time
+def get_guild_timezone(guild_id):
+
+    exists = exists_timezone(guild_id)
     if exists:
         cursor.execute(
                         """
@@ -191,19 +209,10 @@ def sync_database_timezone(guild_id):
                     )
         UTC = cursor.fetchall()[0][0]
     else:
-        cursor.execute(
-                        """
-                        INSERT INTO TIMEZONES (GUILD_ID)
-                        VALUES (%s)
-                        """, (guild_id,)
-                        )
         UTC = 0
+
+    return UTC
     
-    cursor.execute(
-                        """
-                        SET TIME ZONE %s
-                        """, (UTC, )
-    )
 
 # assumes valid hours/minutes
 def remove_time_from_session(guild_id, worker_id, month, year, session_id, hours, minutes):
