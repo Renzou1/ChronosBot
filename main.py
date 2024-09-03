@@ -121,6 +121,35 @@ async def timezone(interaction: discord.Interaction, utc: int):
     database_commands.timezone(interaction.guild_id, utc)
     await interaction.response.send_message("UTC set to %d." % utc)
 
+@tree.command(
+        name="removetimefromsession",
+        description="removes hours and minutes from a session",
+)
+
+async def remove_time_from_session(interaction: discord.Interaction,
+                                    hours: int, minutes:int, session_id: int, month: int,
+                                    year: int = datetime.now().year):
+    if session_id < 0:
+        await interaction.response.send_message("invalid sesion id.")
+        return
+    
+    if hours < 0:
+        await interaction.response.send_message("removing negative hours doesn't add hours, good try though.")
+        return
+    if minutes < 0:
+        await interaction.response.send_message("removing negative minutes doesn't add minutes, good try though.")
+        return
+    response = database_commands.remove_time_from_session(interaction.guild_id, 
+                                                          interaction.user, 
+                                                          month,
+                                                          year,
+                                                          session_id, 
+                                                          hours, 
+                                                          minutes)
+
+    await interaction.response.send_message(response)
+    return
+
 @client.event
 async def on_ready():
     await tree.sync()
@@ -128,14 +157,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message: Message):
-    if message.author == client.user:
-        return
-
-    username = str(message.author)
-    user_message = message.content
-    channel = str(message.channel)
-
-    await send_message(message, user_message, message.author.id)
+    return
 
 def main() -> None:
     client.run(token=DISCORD_TOKEN)

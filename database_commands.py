@@ -202,3 +202,41 @@ def timezone(guild_id, UTC):
 
     cursor.close()
     connection.close()
+
+# assumes valid hours/minutes
+def remove_time_from_session(guild_id, worker_id, month, year, session_id, hours, minutes):
+    cursor, connection = database_inner_workings.database_cursor(guild_id)
+    minutes += hours * 60
+    seconds_to_remove = minutes * 60
+    minutes,hours = 0,0
+
+    start, end, diffs = get_sessions_from_cursor(cursor, worker_id, month, year)
+   
+    cursor.execute(
+                    """
+                    SELECT EXTRACT (EPOCH FROM HOURS.END_TIME - HOURS.START_TIME) FROM HOURS
+                    WHERE START_TIME is %s::timestamp AND WORKER_ID = %s
+                    """, (start[session_id], worker_id)
+    )
+    seconds_worked = cursor.fetchall()[0][0]
+    if seconds_worked < seconds_to_remove:
+        cursor.execute(
+                    """
+                    DELETE FROM HOURS
+                    WHERE START_TIME is %s::timestamp AND WORKER_ID = %s
+                    """, (start[session_id], worker_id)
+                    )
+        cursor.close()
+        connection.close()
+        return "seconds exceeded the session time, session removed."
+    else:
+        cursor.execute(
+                    """
+                    UPDATE HOURS
+                    WHERE START_TIME is %s::timestamp AND WORKER_ID = %s
+                    SET END_TIME = END_TIME - INTERVAL '%s seconds'
+                    """, (start[session_id], worker_id, seconds_to_remove)
+        )    
+        cursor.close()
+        connection.close()
+        return "removed %s from session." % format.time_worked(seconds_to_remove)
