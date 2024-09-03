@@ -129,10 +129,6 @@ async def timezone(interaction: discord.Interaction, utc: int):
 async def remove_time_from_session(interaction: discord.Interaction,
                                     hours: int, minutes:int, session_id: int, month: int,
                                     year: int = datetime.now().year):
-    if session_id < 0:
-        await interaction.response.send_message("invalid sesion id.")
-        return
-    
     if hours < 0:
         await interaction.response.send_message("removing negative hours doesn't add hours, good try though.")
         return
@@ -140,7 +136,7 @@ async def remove_time_from_session(interaction: discord.Interaction,
         await interaction.response.send_message("removing negative minutes doesn't add minutes, good try though.")
         return
     response = database_commands.remove_time_from_session(interaction.guild_id, 
-                                                          interaction.user, 
+                                                          interaction.user.id, 
                                                           month,
                                                           year,
                                                           session_id, 

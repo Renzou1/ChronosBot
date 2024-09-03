@@ -211,32 +211,36 @@ def remove_time_from_session(guild_id, worker_id, month, year, session_id, hours
     minutes,hours = 0,0
 
     start, end, diffs = get_sessions_from_cursor(cursor, worker_id, month, year)
+    if session_id > len(start) or session_id < 0:
+        cursor.close()
+        connection.close()
+        return "Session not found."
    
     cursor.execute(
                     """
                     SELECT EXTRACT (EPOCH FROM HOURS.END_TIME - HOURS.START_TIME) FROM HOURS
-                    WHERE START_TIME is %s::timestamp AND WORKER_ID = %s
-                    """, (start[session_id], worker_id)
+                    WHERE START_TIME = %s::timestamp AND WORKER_ID = %s
+                    """, (start[session_id], str(worker_id))
     )
     seconds_worked = cursor.fetchall()[0][0]
     if seconds_worked < seconds_to_remove:
         cursor.execute(
                     """
                     DELETE FROM HOURS
-                    WHERE START_TIME is %s::timestamp AND WORKER_ID = %s
-                    """, (start[session_id], worker_id)
+                    WHERE START_TIME = %s::timestamp AND WORKER_ID = %s
+                    """, (start[session_id], str(worker_id))
                     )
         cursor.close()
         connection.close()
-        return "seconds exceeded the session time, session removed."
+        return "Time to remove exceeded the session's time, session removed."
     else:
         cursor.execute(
                     """
                     UPDATE HOURS
-                    WHERE START_TIME is %s::timestamp AND WORKER_ID = %s
-                    SET END_TIME = END_TIME - INTERVAL '%s seconds'
-                    """, (start[session_id], worker_id, seconds_to_remove)
+                    SET END_TIME = END_TIME - INTERVAL %s
+                    WHERE START_TIME = %s::timestamp AND WORKER_ID = %s
+                    """, (str(seconds_to_remove) + " seconds", start[session_id], str(worker_id))
         )    
         cursor.close()
         connection.close()
-        return "removed %s from session." % format.time_worked(seconds_to_remove)
+        return "Removed %s from session." % format.time_worked(seconds_to_remove)
