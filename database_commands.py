@@ -169,6 +169,7 @@ def timezone(guild_id, UTC):
     )
 
 # use before getting timezone-specific time
+#may suffer from race condition?
 def sync_database_timezone(guild_id):
     cursor.execute(
                     """

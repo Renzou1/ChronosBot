@@ -137,7 +137,7 @@ async def remove_time_from_session(interaction: discord.Interaction,
     if minutes < 0:
         await interaction.response.send_message("removing negative minutes doesn't add minutes, good try though.")
         return
-    guild_id = str(interaction.user.id)
+    guild_id = str(interaction.guild_id)
     worker_id = str(interaction.user.id)
     response = database_commands.remove_time_from_session(guild_id, 
                                                           worker_id, 
