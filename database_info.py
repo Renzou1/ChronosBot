@@ -1,2 +1,2 @@
-def name(guild_id):
-    return 'p' + str(guild_id)
+def name():
+    return 'chronosbot_database'

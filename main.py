@@ -27,8 +27,8 @@ async def send_message(message: Message, user_message: str, to_send) -> None:
 )
 
 async def start_working(interaction: discord.Interaction):
-    guild_id = interaction.guild_id
-    worker_id = interaction.user.id
+    guild_id = str(interaction.guild_id)
+    worker_id = str(interaction.user.id)
     datetime = interaction.created_at
     response = database_commands.start_working(guild_id, worker_id, datetime)
 
@@ -40,8 +40,8 @@ async def start_working(interaction: discord.Interaction):
 )
 
 async def stop_working(interaction: discord.Interaction):
-    guild_id = interaction.guild_id
-    worker_id = interaction.user.id
+    guild_id = str(interaction.guild_id)
+    worker_id = str(interaction.user.id)
     datetime = interaction.created_at
     response = database_commands.stop_working(guild_id, worker_id, datetime)
 
@@ -53,8 +53,8 @@ async def stop_working(interaction: discord.Interaction):
 )
 
 async def status(interaction: discord.Interaction):
-    guild_id = interaction.guild_id
-    worker_id = interaction.user.id
+    guild_id = str(interaction.guild_id)
+    worker_id = str(interaction.user.id)
     datetime = interaction.created_at
     response =  database_commands.status(guild_id, worker_id, datetime)
 
@@ -72,8 +72,9 @@ async def deletesession(interaction: discord.Interaction,
     if month < 0 or month > 12:
         await interaction.response.send_message("Invalid month.")
         return
-    guild_id = interaction.guild_id
-    response = database_commands.delete_session(guild_id, interaction.user.id, session_id, month, year)
+    guild_id = str(interaction.guild_id)
+    worker_id = str(interaction.user.id)
+    response = database_commands.delete_session(guild_id, worker_id, session_id, month, year)
 
     await interaction.response.send_message(response)    
 
@@ -89,9 +90,10 @@ async def calculate_hours(interaction: discord.Interaction,
         await interaction.response.send_message("Invalid month.")
         return
 
-    guild_id = interaction.guild_id
-    hours_worked = database_commands.calculate_work_hours(guild_id, member.id, month, year)
-    start, end, diffs = database_commands.get_sessions(guild_id, member.id, month, year)
+    guild_id = str(interaction.guild_id)
+    worker_id = str(member.id)
+    hours_worked = database_commands.calculate_work_hours(guild_id, worker_id, month, year)
+    start, end, diffs = database_commands.get_sessions(guild_id, worker_id, month, year)
 
     line = "-------------------------------------------\n"
 
@@ -117,13 +119,13 @@ async def timezone(interaction: discord.Interaction, utc: int):
     if utc < -12 or utc > 14:
         await interaction.response.send_message("Invalid UTC.")
         return
-    
-    database_commands.timezone(interaction.guild_id, utc)
+    guild_id = str(interaction.guild_id)
+    database_commands.timezone(guild_id, utc)
     await interaction.response.send_message("UTC set to %d." % utc)
 
 @tree.command(
         name="removetimefromsession",
-        description="removes hours and minutes from a session",
+        description="(Irreversible!!) removes hours and minutes from a session",
 )
 
 async def remove_time_from_session(interaction: discord.Interaction,
@@ -135,8 +137,10 @@ async def remove_time_from_session(interaction: discord.Interaction,
     if minutes < 0:
         await interaction.response.send_message("removing negative minutes doesn't add minutes, good try though.")
         return
-    response = database_commands.remove_time_from_session(interaction.guild_id, 
-                                                          interaction.user.id, 
+    guild_id = str(interaction.user.id)
+    worker_id = str(interaction.user.id)
+    response = database_commands.remove_time_from_session(guild_id, 
+                                                          worker_id, 
                                                           month,
                                                           year,
                                                           session_id, 
@@ -149,6 +153,7 @@ async def remove_time_from_session(interaction: discord.Interaction,
 @client.event
 async def on_ready():
     await tree.sync()
+    database_commands.database_init()
     print("Running")
 
 @client.event
