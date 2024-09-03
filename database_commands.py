@@ -187,13 +187,16 @@ def exists_timezone(guild_id):
     return exists
 
 def get_timezone(guild_id):
-    cursor.execute(
-                    """
-                    SELECT TIMEZONE FROM TIMEZONES
-                    WHERE GUILD_ID = %s
-                    """, (guild_id,)
-                    )
-    return str(cursor.fetchall()[0][0])
+    if exists_timezone(guild_id):
+        cursor.execute(
+                        """
+                        SELECT TIMEZONE FROM TIMEZONES
+                        WHERE GUILD_ID = %s
+                        """, (guild_id,)
+                        )
+        return str(cursor.fetchall()[0][0])
+    else:
+        return 0
 
 # use before getting timezone-specific time
 def get_guild_timezone(guild_id):
@@ -209,7 +212,7 @@ def get_guild_timezone(guild_id):
                     )
         UTC = cursor.fetchall()[0][0]
     else:
-        UTC = 0
+        UTC = "0"
 
     return UTC
     
