@@ -4,7 +4,6 @@ import discord
 from discord import Intents, Client, Message, app_commands
 import database_commands
 import format
-import csv
 from datetime import datetime
 
 load_dotenv()
@@ -96,30 +95,54 @@ async def calculate_hours(interaction: discord.Interaction,
     hours_worked = database_commands.calculate_work_hours(guild_id, member.id, month, year)
     start, end, diffs = database_commands.get_sessions(guild_id, member.id, month, year)
 
-    line = "-------------------------------------------"
+    dashed_line = "-------------------------------------------"
     
     response = "```js\nUser %s - Hour Registry - Month %02d - Year %d:\n\n" % (member.name, month, year)
     if len(start) >= 100:
         response += "sessionXXX (dates) | start -> end | hh:mm:ss\n"
-        line += "-\n"
-        response += line
+        dashed_line += "-\n"
+        response += dashed_line
         for i in range(len(start)):
             if end[i] == None:
                 break
             response += "session%03d (%02d/%02d) | %02d:%02d->%02d:%02d | %02d:%02d:%02d\n" % (i, start[i].day, start[i].month, start[i].hour, start[i].minute, end[i].hour, end[i].minute, diffs[i][0], diffs[i][1], diffs[i][2])
     else:
         response += "sessionXX (dates) | start -> end | hh:mm:ss\n"
-        line += "\n"
-        response += line
+        dashed_line += "\n"
+        response += dashed_line
         for i in range(len(start)):
             if end[i] == None:
                 break
             response += "session%02d (%02d/%02d) | %02d:%02d->%02d:%02d | %02d:%02d:%02d\n" % (i, start[i].day, start[i].month, start[i].hour, start[i].minute, end[i].hour, end[i].minute, diffs[i][0], diffs[i][1], diffs[i][2])
 
-    response += line
-    response += "total: %s ```" % format.time_worked(hours_worked * 60 * 60)
+    response += dashed_line
+    response += "total: %s```" % format.time_worked(hours_worked * 60 * 60)
+    message_limit = 2000
+    if (len(response) < message_limit):
+        await interaction.response.send_message(response)
+        return  
+    
+    channel = interaction.channel
+    lines = response.split('\n')
+    for i, line in enumerate(lines):
+        lines[i] += '\n'
+    shortened_response = ""
+    shortened_response += lines.pop(0) + lines.pop(0) + lines.pop(0) + lines.pop(0) + lines.pop(0) + "...\n"
+    
+    i = len(lines) - 1
+    latest_lines = []
+    next_length = len(shortened_response)
+    while True:
+        next_length += len(lines[i])
+        if next_length > message_limit:
+            latest_lines.reverse()
+            for line in latest_lines:
+                shortened_response += line
+            await interaction.response.send_message(shortened_response)
+            return
+        latest_lines.append(lines[i])
+        i = i - 1
 
-    await interaction.response.send_message(response)
 
 @tree.command(
         name="timezone",

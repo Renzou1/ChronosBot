@@ -2,7 +2,6 @@ import database_inner_workings
 import database_info
 import format
 import csv
-import datetime
 from psycopg2 import sql
 
 
