@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - "./postgres/postgres.conf:/usr/local/etc/postgres/postgres.conf"
+      - "./postgres/data:/var/lib/postgresql/data"
+
+  chronosbot: #environment variables in .env
+    restart: always
+    depends_on:
+      - db
+    image: renzobattisti/chronosbot:v1.2
