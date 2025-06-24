@@ -58,7 +58,8 @@ async def status(interaction: discord.Interaction):
     guild_id = interaction.guild_id
     worker_id = interaction.user.id
     datetime = interaction.created_at
-    response =  database_commands.status(guild_id, worker_id, datetime)
+    user_mention = interaction.user.mention
+    response =  database_commands.status(guild_id, worker_id, datetime, user_mention)
 
     await interaction.response.send_message(response)
 

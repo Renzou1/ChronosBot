@@ -19,7 +19,7 @@ def is_working(cursor, worker_id):
     return result
 
     
-def get_seconds_worked(cursor, worker_id, datetime):
+def seconds_worked_in_session(cursor, worker_id, datetime):
     cursor.execute(
                     """
                     SELECT EXTRACT (EPOCH FROM %s::timestamp - HOURS.START_TIME) FROM HOURS
@@ -58,7 +58,7 @@ def stop_working(guild_id, worker_id, datetime, user_mention):
         cursor.close()
         return "You aren't working yet. Try the 'start working' slash command."
 
-    seconds_worked = get_seconds_worked(cursor, worker_id, datetime)
+    seconds_worked = seconds_worked_in_session(cursor, worker_id, datetime)
 
     cursor.execute(
                    """
@@ -78,23 +78,60 @@ def stop_working(guild_id, worker_id, datetime, user_mention):
     cursor.close()
     return response
 
-def status(guild_id, worker_id, datetime):
+def status(guild_id, worker_id, datetime, user_mention):
     connection = database_inner_workings.get_connection(guild_id)
     cursor = connection.cursor()
+    response = ""
     if not is_working(cursor, worker_id):
-        cursor.close()
-        return "You are currently not working."
+        response += "**[%s]** is currently not working." % (user_mention)
+    else:
+        seconds_worked = seconds_worked_in_session(cursor, worker_id, datetime)    
 
-    seconds_worked = get_seconds_worked(cursor, worker_id, datetime)    
-
-    response = "You have been working for "
-    time = format.time_worked(seconds_worked) 
+        response = "**[%s]** has been working for " % (user_mention)
+        time = format.time_worked(seconds_worked) 
+        response += time
+        response += "."
+    
+    _seconds_worked_today = seconds_worked_today(guild_id, worker_id, datetime)
+    
+    response += "\n\nTotal work time today: **["
+    time = format.time_worked(_seconds_worked_today) 
     response += time
-    response += "."
+    response += "].**"
+    
 
-    cursor.close()
     return response
 
+def seconds_worked_today(guild_id, worker_id, datetime):
+    connection = database_inner_workings.get_connection(guild_id)
+    cursor = connection.cursor()
+
+    day = datetime.day
+    month = datetime.month
+    year = datetime.year
+    cursor.execute(
+                    """
+                    SELECT EXTRACT (EPOCH FROM SUM(HOURS.END_TIME - HOURS.START_TIME)) FROM HOURS
+                    WHERE EXTRACT(day FROM HOURS.END_TIME) = %s
+                    AND EXTRACT(month FROM HOURS.END_TIME) = %s
+                    AND EXTRACT(year FROM HOURS.END_TIME) = %s
+                    AND HOURS.WORKER_ID = %s
+                    """, (day, month, year, str(worker_id))
+    )
+                # this returns a list of tuples, but we only have one value
+    previously_worked = cursor.fetchall()[0][0]
+    if previously_worked == None:
+        previously_worked = 0
+
+    # this if avoids problems with None I think
+    if not is_working(cursor, worker_id):
+        seconds_worked = previously_worked
+    else:
+        seconds_worked = previously_worked + seconds_worked_in_session(cursor, worker_id, datetime)
+
+    cursor.close()
+    
+    return seconds_worked 
 
 def calculate_work_hours(guild_id, worker_id, month, year):
     connection = database_inner_workings.get_connection(guild_id)
