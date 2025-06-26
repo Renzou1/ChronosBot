@@ -135,7 +135,7 @@ def seconds_worked_today(guild_id, worker_id, datetime_tz):
     if not is_working(cursor, worker_id):
         seconds_worked = previously_worked
     else:
-        seconds_worked = previously_worked + seconds_worked_in_session(cursor, worker_id, datetime)
+        seconds_worked = previously_worked + seconds_worked_in_session(cursor, worker_id, datetime_tz)
 
     cursor.close()
     
