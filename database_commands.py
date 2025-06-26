@@ -101,8 +101,6 @@ def status(guild_id, worker_id, datetime, user_mention):
     
     datetime_tz = imbue_timezone(cursor, datetime)
     _seconds_worked_today = seconds_worked_today(guild_id, worker_id, datetime_tz)
-    print(datetime.day)
-    print(datetime_tz.day)
     
     response += "\n\nTotal work time today: **["
     time = format.time_worked(_seconds_worked_today) 
