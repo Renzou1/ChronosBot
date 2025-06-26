@@ -2,6 +2,8 @@ import database_inner_workings
 import database_info
 import format
 import csv
+from datetime import timedelta
+from zoneinfo import ZoneInfo
 from psycopg2 import sql
 
 
@@ -29,6 +31,11 @@ def seconds_worked_in_session(cursor, worker_id, datetime):
     seconds_worked = cursor.fetchall()[0][0]
 
     return seconds_worked
+
+def imbue_timezone(cursor, datetime):
+    cursor.execute("SELECT %s::timestamp", (datetime,))
+    datetime_tz = cursor.fetchall()[0][0]
+    return datetime_tz
 
 
 def start_working(guild_id, worker_id, datetime, user_mention):
@@ -92,7 +99,10 @@ def status(guild_id, worker_id, datetime, user_mention):
         response += time
         response += "."
     
-    _seconds_worked_today = seconds_worked_today(guild_id, worker_id, datetime)
+    datetime_tz = imbue_timezone(cursor, datetime)
+    _seconds_worked_today = seconds_worked_today(guild_id, worker_id, datetime_tz)
+    print(datetime.day)
+    print(datetime_tz.day)
     
     response += "\n\nTotal work time today: **["
     time = format.time_worked(_seconds_worked_today) 
@@ -102,13 +112,13 @@ def status(guild_id, worker_id, datetime, user_mention):
 
     return response
 
-def seconds_worked_today(guild_id, worker_id, datetime):
+def seconds_worked_today(guild_id, worker_id, datetime_tz):
     connection = database_inner_workings.get_connection(guild_id)
     cursor = connection.cursor()
 
-    day = datetime.day
-    month = datetime.month
-    year = datetime.year
+    day = datetime_tz.day
+    month = datetime_tz.month
+    year = datetime_tz.year
     cursor.execute(
                     """
                     SELECT EXTRACT (EPOCH FROM SUM(HOURS.END_TIME - HOURS.START_TIME)) FROM HOURS
